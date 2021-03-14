@@ -1,0 +1,75 @@
+---
+title: "Untitled"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(reticulate)
+
+# make sure to set which python
+use_python("usr/bin/python3")
+
+# install api package
+# py_install("noaa-sdk", pip = T)
+
+# Source python function
+source_python("forecast.py")
+
+# call observation for zip code
+# Returns six and a half days of weather
+forecast <- get_observations("97218", 1)
+
+# get date and time for given forecast
+get_date_time <- function(starttime) {
+  d <- gsub("(T.*)", "", starttime)
+  t <- gsub("(.*T)", "", starttime)
+  t <- gsub("^([^:]*:[^:]*).*", "\\1", t)
+  return(list(d,t))
+}
+
+# define times for forecast
+times <- c(1,2,3, 24, 48, 72)
+forecast_trim <- forecast[times]
+
+# unlist function
+unlist_forecast <- function(list, n) {
+  unlist(list[n], recursive = F)
+}
+
+# create objects to display
+now <- unlist_forecast(forecast, 1)
+hour_2 <- unlist_forecast(forecast, 2)
+hour_3 <- unlist_forecast(forecast, 3)
+day_2 <- unlist_forecast(forecast, 4)
+day_3 <- unlist_forecast(forecast, 5)
+day_4 <- unlist_forecast(forecast, 6)
+```
+
+
+```{r eruptions, echo=FALSE}
+inputPanel(
+  selectInput("n_breaks", label = "Number of bins:",
+              choices = c(10, 20, 35, 50), selected = 20),
+  
+  sliderInput("bw_adjust", label = "Bandwidth adjustment:",
+              min = 0.2, max = 2, value = 1, step = 0.2)
+)
+
+renderPlot({
+  hist(faithful$eruptions, probability = TRUE, breaks = as.numeric(input$n_breaks),
+       xlab = "Duration (minutes)", main = "Geyser eruption duration")
+  
+  dens <- density(faithful$eruptions, adjust = input$bw_adjust)
+  lines(dens, col = "blue")
+})
+```
+
+```{r tabsets, echo=FALSE}
+
+```
+
