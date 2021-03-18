@@ -60,9 +60,14 @@ options(shiny.autoreload = T)
 
 # time and date display function
 time_display <- function(secs = 0) {
-    format(strptime(gsub(".* ", "", Sys.time()), format='%H:%M') + secs, '%r')
+    format(strptime(gsub(".* ", "", Sys.time()), format='%H:%M:%S') + secs, '%r')
 }
+time_display()
+```
 
+
+
+```{r eruptions, echo=FALSE}
 date_display <- function(days = 0) {
     sub(".*?-", "", Sys.Date() + days)
 }
@@ -159,10 +164,44 @@ fore_icon <- function(fore) {
 now <- unlist_forecast(forecast, 1)
 hour_2 <- unlist_forecast(forecast, 2)
 hour_3 <- unlist_forecast(forecast, 3)
-day_2 <- unlist_forecast(forecast, 4)
-day_3 <- unlist_forecast(forecast, 5)
-day_4 <- unlist_forecast(forecast, 6)
+day_2 <- unlist_forecast(forecast, 24)
+day_3 <- unlist_forecast(forecast, 48)
+day_4 <- unlist_forecast(forecast, 72)
 
+
+# get high low values for 
+fore_max_min <- function(forecast, startTime, days) {
+  # get hours ahead
+  h <- days * 24
+  # extract initial time and convert to number
+  t <- get_date_time(startTime)
+  h_to_mid <- h - as.numeric(gsub(":.*", "", t[[2]]))
+  
+  # create hours for day
+  h_seq <- seq(h_to_mid, h_to_mid + h)
+  # extract all temps in those hours
+  temps <- purrr::map_dfc(h_seq, ~ unlist_forecast(forecast, .x)$temperature)
+  
+  return(list(max(temps), min(temps)))
+}
+
+temp <- fore_max_min(forecast, startTime = now$startTime, days = 3)
+div(temp[[1]])
+
+div(if (is.list(temp)) {
+  HTML(paste(
+    paste("High:", temp[[1]]),
+    "<span>F&#176;</span>",
+    paste("Low:", temp[[2]])
+  ))
+} else {
+  temp
+},
+HTML("<span>F&#176;</span>"))
+```
+
+
+```{r eruptions, echo=FALSE}
 # Define UI for application that draws a histogram
 ui <- fluidPage(
     # Include bootstrap icons
@@ -227,6 +266,7 @@ ui <- fluidPage(
                iconUI("next3"))
         )
 )
+ui
 ```
 
 
@@ -282,5 +322,7 @@ shinyApp(ui = ui, server = server)
 purrr::map_dfc(1:156, ~ fore_unlist(forecast, .x)$shortForecast) %>%
   t() %>% 
   unique()
+
+time_display()
 ```
 
